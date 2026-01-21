@@ -11,7 +11,7 @@ import numpy as np
 from tqdm import tqdm
 import os
 
-def train_model(epochs=20, batch_size=64, lr=0.001, subset_size=0, resume=True):
+def train_model(epochs=20, batch_size=64, lr=0.001, subset_size=0, resume=True, num_workers_override=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
@@ -22,7 +22,10 @@ def train_model(epochs=20, batch_size=64, lr=0.001, subset_size=0, resume=True):
         print(f"Set torch num_threads to {cpu_cores}")
     
     # Increase workers for Linux/High-end CPU
-    num_workers = min(16, cpu_cores)
+    if num_workers_override is not None:
+        num_workers = num_workers_override
+    else:
+        num_workers = min(16, cpu_cores)
 
     # Load dataset
     csv_path = 'train.csv'
@@ -231,6 +234,24 @@ def train_model(epochs=20, batch_size=64, lr=0.001, subset_size=0, resume=True):
     torch.save(model.state_dict(), "sewer_model.pth")
     print("Final model saved to sewer_model.pth")
 
+import argparse
+
 if __name__ == "__main__":
-    train_model(epochs=20, batch_size=64, subset_size=0, resume=True)
+    parser = argparse.ArgumentParser(description="Train Sewer-ML Model")
+    parser.add_argument("--epochs", type=int, default=20, help="Number of epochs")
+    parser.add_argument("--batch-size", type=int, default=64, help="Batch size")
+    parser.add_argument("--subset-size", type=int, default=0, help="Subset size for testing (0 for full dataset)")
+    parser.add_argument("--workers", type=int, default=None, help="Number of data loader workers (default: auto-detect)")
+    parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
+    
+    args = parser.parse_args()
+    
+    train_model(
+        epochs=args.epochs, 
+        batch_size=args.batch_size, 
+        subset_size=args.subset_size, 
+        lr=args.lr,
+        resume=True,
+        num_workers_override=args.workers
+    )
 

@@ -59,30 +59,49 @@ Directory structure should look like this:
 To start the training script:
 
 ```bash
-python train_model.py
+python3 train_model.py
 ```
 
-### Useful Flags
-The `train_model.py` script has default arguments, but you can modify them in the `if __name__ == "__main__":` block or by modifying the parameters:
-
-- `epochs`: Number of training epochs (default: 5)
-- `batch_size`: Batch size (default: 48, you can likely increase this on H200)
-- `subset_size`: Set to 0 for full dataset, or a number for testing (default: 0)
-
-To run with modifications, you can edit the command in `train_model.py` or run a command like:
+### Optimized Command for NVIDA H200 (235GB RAM)
+To utilize your server's full potential, increase the batch size and workers:
 ```bash
-# Example of passing args if script supported them via CLI (currently need to edit file or add CLI args)
-python train_model.py
+python3 train_model.py --batch-size 192 --workers 32
 ```
-*Currently `train_model.py` runs `train_model(epochs=5, batch_size=48, subset_size=0, resume=True)` at the bottom. You can edit this line in the file to change parameters for the H200 (e.g., `batch_size=128` or `256` to utilize the memory).*
 
-## 6. Monitor Progress
+### CLI Arguments
+You can now control training parameters directly from the command line:
+- `--batch-size`: Set batch size (default: 64). Try 192 or 256 for H200.
+- `--workers`: Number of data loading workers (default: auto). Try 32 for high-core CPU.
+- `--epochs`: Number of epochs (default: 20).
+- `--subset-size`: Use a subset of data for testing (default: 0 for all data).
+
+Example:
+```bash
+python3 train_model.py --batch-size 192 --workers 32 --epochs 30
+```
+
+## 6. Resuming Training
+The script is configured to automatically resume training if it finds a checkpoint file.
+
+### Scenario A: Resuming a Server Run
+If your training on the server was interrupted, simply run the script again:
+```bash
+python3 train_model.py
+```
+It will detect `sewer_checkpoint.pth` in the directory and continue from the last saved epoch/batch.
+
+### Scenario B: Continue Local Training on Server
+If you started training locally and want to finish on the H200:
+1. Upload your local `sewer_checkpoint.pth` file to the root of the repo on the server (same level as `train_model.py`).
+2. Run `python3 train_model.py`.
+
+## 7. Monitor Progress
 The script logs to `training.log` (or similar logs defined in code) and uses `tqdm` for a progress bar.
 - `sewer_model.pth`: Final model
 - `sewer_model_best.pth`: Best model based on F1 score
 - `sewer_checkpoint.pth`: Resume checkpoint
 
-## 7. Inference
+## 8. Inference
 To generate the submission file:
 ```bash
 python inference.py
