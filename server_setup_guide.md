@@ -101,7 +101,35 @@ The script logs to `training.log` (or similar logs defined in code) and uses `tq
 - `sewer_model_best.pth`: Best model based on F1 score
 - `sewer_checkpoint.pth`: Resume checkpoint
 
-## 8. Inference
+## 9. Running in Background (SSH Safe)
+To keep the training running even if you disconnect from SSH, use `nohup`:
+
+```bash
+nohup python3 train_model.py --batch-size 192 --workers 32 > training.log 2>&1 &
+```
+
+### Explaining the command:
+- `nohup`: "No Hang Up" - prevents process from stopping when you logout.
+- `> training.log`: Redirects output to a file named `training.log`.
+- `2>&1`: Redirects errors to the same file.
+- `&`: Runs the process in the background immediately.
+
+### Checking Progress
+To see the "live" output (like you would see on screen):
+```bash
+tail -f training.log
+```
+*Press `Ctrl+C` to stop watching (this won't stop the training).*
+
+### Stopping the Process
+If you need to stop the background training:
+1. Find the Process ID (PID):
+   ```bash
+   ps aux | grep train_model.py
+   ```
+2. Kill the process:
+   ```bash
+## 10. Inference
 To generate the submission file:
 ```bash
 python inference.py
