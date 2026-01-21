@@ -43,12 +43,14 @@ class SewerDataset(Dataset):
 
         return image, labels
 
-def get_transforms(img_size=224, augment=False):
+def get_transforms(img_size=380, augment=False):
     if augment:
         return transforms.Compose([
             transforms.Resize((img_size, img_size)),
             transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(), # Added vertical flip
             transforms.RandomRotation(15),
+            transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)), # Added shift
             transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])

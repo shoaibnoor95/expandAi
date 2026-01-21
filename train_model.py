@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader, Subset
 from torchvision import models
 from dataset import SewerDataset, get_transforms
@@ -9,7 +10,7 @@ import numpy as np
 from tqdm import tqdm
 import os
 
-def train_model(epochs=5, batch_size=64, lr=0.001, subset_size=0, resume=True):
+def train_model(epochs=20, batch_size=32, lr=0.001, subset_size=0, resume=True):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
@@ -30,7 +31,8 @@ def train_model(epochs=5, batch_size=64, lr=0.001, subset_size=0, resume=True):
     full_dataset = SewerDataset(csv_path, img_dir, transform=train_transform)
     
     # Model
-    model = models.efficientnet_b0(pretrained=True)
+    print("Initializing EfficientNet-B4...")
+    model = models.efficientnet_b4(pretrained=True)
     num_ftrs = model.classifier[1].in_features
     model.classifier[1] = nn.Linear(num_ftrs, 19)
     model = model.to(device)
@@ -48,6 +50,7 @@ def train_model(epochs=5, batch_size=64, lr=0.001, subset_size=0, resume=True):
     # Loss and Optimizer
     criterion = nn.BCEWithLogitsLoss(pos_weight=class_weights)
     optimizer = optim.Adam(model.parameters(), lr=lr)
+    scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=3, verbose=True)
 
     start_epoch = 0
     start_batch = 0
@@ -174,11 +177,35 @@ def train_model(epochs=5, batch_size=64, lr=0.001, subset_size=0, resume=True):
                 all_preds.extend(preds)
                 all_labels.extend(labels.cpu().numpy())
 
-        all_preds = np.array(all_preds) > 0.5
+        all_preds_probs = np.array(all_preds)
         all_labels = np.array(all_labels)
+
+        # Per-class threshold optimization
+        print("Optimizing thresholds...")
+        best_thresholds = []
+        for i in range(19): # 19 classes
+            class_preds = all_preds_probs[:, i] 
+            class_labels = all_labels[:, i]
+            best_t = 0.5
+            best_class_f1 = 0.0
+            for t in np.arange(0.1, 1.0, 0.05):
+                t_preds = (class_preds > t).astype(int)
+                t_f1 = f1_score(class_labels, t_preds, zero_division=0)
+                if t_f1 > best_class_f1:
+                    best_class_f1 = t_f1
+                    best_t = t
+            best_thresholds.append(best_t)
         
-        f1 = f1_score(all_labels, all_preds, average='macro')
-        print(f"Validation F1-score (Macro): {f1:.4f}")
+        best_thresholds = np.array(best_thresholds)
+        print(f"Optimal thresholds: {best_thresholds}")
+
+        # Apply optimized thresholds
+        final_preds = (all_preds_probs > best_thresholds).astype(int)
+        
+        f1 = f1_score(all_labels, final_preds, average='macro')
+        print(f"Validation F1-score (Macro) with optimized thresholds: {f1:.4f}")
+        
+        scheduler.step(f1)
 
         torch.save({
             'epoch': epoch + 1,
