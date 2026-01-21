@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, Subset
 from torchvision import models
 from dataset import SewerDataset, get_transforms
@@ -10,7 +11,7 @@ import numpy as np
 from tqdm import tqdm
 import os
 
-def train_model(epochs=20, batch_size=256, lr=0.001, subset_size=0, resume=True):
+def train_model(epochs=20, batch_size=64, lr=0.001, subset_size=0, resume=True):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
@@ -52,6 +53,7 @@ def train_model(epochs=20, batch_size=256, lr=0.001, subset_size=0, resume=True)
     criterion = nn.BCEWithLogitsLoss(pos_weight=class_weights)
     optimizer = optim.Adam(model.parameters(), lr=lr)
     scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=3)
+    scaler = GradScaler()
 
     start_epoch = 0
     start_batch = 0
@@ -138,10 +140,14 @@ def train_model(epochs=20, batch_size=256, lr=0.001, subset_size=0, resume=True)
             inputs, labels = inputs.to(device), labels.to(device)
 
             optimizer.zero_grad()
-            outputs = model(inputs)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
+            
+            with autocast():
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+            
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
             running_loss += loss.item() * inputs.size(0)
             
@@ -226,5 +232,5 @@ def train_model(epochs=20, batch_size=256, lr=0.001, subset_size=0, resume=True)
     print("Final model saved to sewer_model.pth")
 
 if __name__ == "__main__":
-    train_model(epochs=20, batch_size=256, subset_size=0, resume=True)
+    train_model(epochs=20, batch_size=64, subset_size=0, resume=True)
 
