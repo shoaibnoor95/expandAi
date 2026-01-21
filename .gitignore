@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+train_images/*.*
+test_images/*.*
+*.log
+sewer_checkpoint.pth
