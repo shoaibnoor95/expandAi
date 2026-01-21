@@ -10,7 +10,7 @@ import numpy as np
 from tqdm import tqdm
 import os
 
-def train_model(epochs=20, batch_size=32, lr=0.001, subset_size=0, resume=True):
+def train_model(epochs=20, batch_size=256, lr=0.001, subset_size=0, resume=True):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
@@ -20,7 +20,8 @@ def train_model(epochs=20, batch_size=32, lr=0.001, subset_size=0, resume=True):
         torch.set_num_threads(cpu_cores)
         print(f"Set torch num_threads to {cpu_cores}")
     
-    num_workers = min(4, cpu_cores) # Safe value for Windows
+    # Increase workers for Linux/High-end CPU
+    num_workers = min(16, cpu_cores)
 
     # Load dataset
     csv_path = 'train.csv'
