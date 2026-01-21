@@ -51,7 +51,7 @@ def train_model(epochs=20, batch_size=256, lr=0.001, subset_size=0, resume=True)
     # Loss and Optimizer
     criterion = nn.BCEWithLogitsLoss(pos_weight=class_weights)
     optimizer = optim.Adam(model.parameters(), lr=lr)
-    scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=3, verbose=True)
+    scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=3)
 
     start_epoch = 0
     start_batch = 0
@@ -226,5 +226,5 @@ def train_model(epochs=20, batch_size=256, lr=0.001, subset_size=0, resume=True)
     print("Final model saved to sewer_model.pth")
 
 if __name__ == "__main__":
-    train_model(epochs=5, batch_size=48, subset_size=0, resume=True)
+    train_model(epochs=20, batch_size=256, subset_size=0, resume=True)
 
