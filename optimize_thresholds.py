@@ -40,7 +40,7 @@ def optimize():
     )
 
     # Load Model
-    model_path = "sewer_model_best.pth"
+    model_path = "sewer_model_fixed.pth"
     if not os.path.exists(model_path):
         print(f"Error: {model_path} not found.")
         return
@@ -51,7 +51,26 @@ def optimize():
     # 19 classes
     model.classifier[1] = nn.Linear(num_ftrs, 19)
     
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    print(f"Loading state dict from {model_path}...")
+    try:
+        state_dict = torch.load(model_path, map_location=device)
+        if 'model_state_dict' in state_dict:
+            state_dict = state_dict['model_state_dict']
+            
+        model.load_state_dict(state_dict, strict=True)
+        print("Model loaded successfully (strict=True).")
+    except Exception as e:
+        print(f"Strict load failed: {e}")
+        print("Attempting strict=False load...")
+        try:
+            missing, unexpected = model.load_state_dict(state_dict, strict=False)
+            print(f"Missing keys: {len(missing)}")
+            print(f"Unexpected keys: {len(unexpected)}")
+            # print(f"First 5 missing: {missing[:5]}")
+            # print(f"First 5 unexpected: {unexpected[:5]}")
+        except Exception as e2:
+             print(f"Fatal error loading model: {e2}")
+             return
     model = model.to(device)
     model.eval()
 
@@ -60,8 +79,11 @@ def optimize():
     all_preds = []
     
     print("Running inference on validation set...")
+    max_batches = 50
     with torch.no_grad():
-        for inputs, labels in tqdm(val_loader):
+        for i, (inputs, labels) in enumerate(tqdm(val_loader, total=max_batches)):
+            if i >= max_batches:
+                break
             inputs = inputs.to(device)
             outputs = model(inputs)
             preds = torch.sigmoid(outputs).cpu().numpy()

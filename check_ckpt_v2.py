@@ -1,29 +1,22 @@
 import torch
 import os
 
-def check_checkpoint(path):
-    if not os.path.exists(path):
-        print(f"Skipping {path}: File not found")
-        return
-
+model_path = "sewer_model_best.pth"
+if os.path.exists(model_path):
     try:
-        print(f"--- Checking {path} ---")
-        # Load on CPU to avoid CUDA errors if on non-GPU environment
-        checkpoint = torch.load(path, map_location=torch.device('cpu'))
-        
-        if isinstance(checkpoint, dict):
-            if 'epoch' in checkpoint:
-                print(f"Epoch: {checkpoint['epoch']}")
-            if 'best_f1' in checkpoint:
-                print(f"Best F1 Score: {checkpoint['best_f1']:.4f}")
-            if 'batch_idx' in checkpoint:
-                print(f"Batch Index: {checkpoint['batch_idx']}")
+        checkpoint = torch.load(model_path, map_location='cpu')
+        # Check if it's a full checkpoint or just state_dict
+        if 'model_state_dict' in checkpoint:
+            state_dict = checkpoint['model_state_dict']
+            print("Loaded from checkpoint['model_state_dict']")
         else:
-            print("Checkpoint is not a dictionary (likely just state_dict).")
+            state_dict = checkpoint
+            print("Loaded from raw state_dict")
             
+        for key in state_dict:
+            if 'classifier' in key:
+                print(f"{key}: {state_dict[key].shape}")
     except Exception as e:
-        print(f"Error reading {path}: {e}")
-
-if __name__ == "__main__":
-    check_checkpoint("sewer_checkpoint.pth")
-    check_checkpoint("sewer_model_best.pth")
+        print(f"Error loading: {e}")
+else:
+    print("Model file not found")
