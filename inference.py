@@ -39,7 +39,7 @@ def run_inference(model_path="sewer_model_best.pth", test_csv="test.csv", img_di
     labels = ['VA', 'RB', 'OB', 'PF', 'DE', 'FS', 'IS', 'RO', 'IN', 'AF', 'BE', 'FO', 'GR', 'PH', 'PB', 'OS', 'OP', 'OK', 'ND']
     
     # Model
-    model = models.efficientnet_b4(pretrained=False)
+    model = models.efficientnet_b0(pretrained=False)
     num_ftrs = model.classifier[1].in_features
     model.classifier[1] = nn.Linear(num_ftrs, len(labels))
     
