@@ -36,8 +36,8 @@ def train_model(epochs=20, batch_size=64, lr=0.001, subset_size=0, resume=True, 
     full_dataset = SewerDataset(csv_path, img_dir, transform=train_transform)
     
     # Model
-    print("Initializing EfficientNet-B0...")
-    model = models.efficientnet_b0(pretrained=True)
+    print("Initializing EfficientNet-B4...")
+    model = models.efficientnet_b4(pretrained=True)
     num_ftrs = model.classifier[1].in_features
     model.classifier[1] = nn.Linear(num_ftrs, 19)
     model = model.to(device)

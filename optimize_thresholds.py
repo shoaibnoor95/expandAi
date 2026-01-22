@@ -46,7 +46,7 @@ def optimize():
         return
 
     print("Loading model...")
-    model = models.efficientnet_b0(pretrained=False)
+    model = models.efficientnet_b4(pretrained=False)
     num_ftrs = model.classifier[1].in_features
     # 19 classes
     model.classifier[1] = nn.Linear(num_ftrs, 19)
