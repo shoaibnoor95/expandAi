@@ -7,6 +7,7 @@ import pandas as pd
 import os
 from dataset import get_transforms
 from tqdm import tqdm
+import numpy as np
 
 class SewerTestDataset(Dataset):
     def __init__(self, csv_file, img_dir, transform=None):
