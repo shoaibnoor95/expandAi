@@ -31,7 +31,7 @@ class SewerTestDataset(Dataset):
             image = self.transform(image)
         return image, self.df.iloc[idx, 0]
 
-def run_inference(model_path="sewer_model_fixed.pth", test_csv="test.csv", img_dir="test_images", output_csv="submission.csv", subset_size=0):
+def run_inference(model_path="sewer_model_best.pth", test_csv="test.csv", img_dir="test_images", output_csv="submission.csv", subset_size=0):
     torch.backends.mkldnn.enabled = False
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
