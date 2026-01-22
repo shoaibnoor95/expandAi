@@ -93,10 +93,24 @@ def run_inference(model_path="sewer_model_best.pth", test_csv="test.csv", img_di
     
     with torch.no_grad():
         for i, (inputs, filenames) in enumerate(tqdm(test_loader, desc="Inference")):
+            # Load thresholds if available
+            thresholds = 0.5
+            if os.path.exists('thresholds.json'):
+                import json
+                with open('thresholds.json', 'r') as f:
+                    thresholds_list = json.load(f)
+                    thresholds = np.array(thresholds_list)
+                    # print("Using optimized thresholds") # Optional: uncomment to confirm
+            
             inputs = inputs.to(device)
             outputs = model(inputs)
             preds = torch.sigmoid(outputs).cpu().numpy()
-            binary_preds = (preds > 0.5).astype(int)
+            
+            # Apply thresholds
+            if isinstance(thresholds, np.ndarray):
+                binary_preds = (preds > thresholds).astype(int)
+            else:
+                binary_preds = (preds > thresholds).astype(int)
             
             for j in range(len(filenames)):
                 res = [filenames[j]] + list(binary_preds[j])

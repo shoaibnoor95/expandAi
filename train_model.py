@@ -207,7 +207,13 @@ def train_model(epochs=20, batch_size=64, lr=0.001, subset_size=0, resume=True, 
             best_thresholds.append(best_t)
         
         best_thresholds = np.array(best_thresholds)
+        best_thresholds = np.array(best_thresholds)
         print(f"Optimal thresholds: {best_thresholds}")
+
+        # Save thresholds
+        import json
+        with open('thresholds.json', 'w') as f:
+            json.dump(best_thresholds.tolist(), f)
 
         # Apply optimized thresholds
         final_preds = (all_preds_probs > best_thresholds).astype(int)
