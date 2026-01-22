@@ -26,10 +26,17 @@ class SewerTestDataset(Dataset):
             print(f"Error loading {img_name}: {e}")
             # Return a blank image if error
             image = Image.new('RGB', (224, 224))
-            
+        
+        # Test Time Augmentation (TTA): Original, HFlip, VFlip
+        images = [image]
+        images.append(image.transpose(Image.FLIP_LEFT_RIGHT))
+        images.append(image.transpose(Image.FLIP_TOP_BOTTOM))
+
         if self.transform:
-            image = self.transform(image)
-        return image, self.df.iloc[idx, 0]
+            images = [self.transform(img) for img in images]
+            
+        # Stack into [3, C, H, W]
+        return torch.stack(images), self.df.iloc[idx, 0]
 
 def run_inference(model_path="sewer_model_best.pth", test_csv="test.csv", img_dir="test_images", output_csv="submission.csv", subset_size=0):
     torch.backends.mkldnn.enabled = False
@@ -93,7 +100,7 @@ def run_inference(model_path="sewer_model_best.pth", test_csv="test.csv", img_di
     buffer_size = 50 # Write every 50 batches (800 images) to reduce lock frequency
     
     with torch.no_grad():
-        for i, (inputs, filenames) in enumerate(tqdm(test_loader, desc="Inference")):
+        for i, (inputs, filenames) in enumerate(tqdm(test_loader, desc="Inference (TTA)")):
             # Load thresholds if available
             thresholds = 0.5
             if os.path.exists('thresholds.json'):
@@ -103,9 +110,19 @@ def run_inference(model_path="sewer_model_best.pth", test_csv="test.csv", img_di
                     thresholds = np.array(thresholds_list)
                     # print("Using optimized thresholds") # Optional: uncomment to confirm
             
-            inputs = inputs.to(device)
-            outputs = model(inputs)
-            preds = torch.sigmoid(outputs).cpu().numpy()
+            # inputs shape: [Batch, 3, C, H, W]
+            bs, n_crops, c, h, w = inputs.size()
+            
+            # Fuse batch and crops
+            inputs = inputs.view(-1, c, h, w).to(device) # [Batch*3, C, H, W]
+            
+            outputs = model(inputs) # [Batch*3, 19]
+            
+            # Reshape back to separate crops and average
+            outputs = outputs.view(bs, n_crops, -1) # [Batch, 3, 19]
+            probs = torch.sigmoid(outputs).mean(dim=1) # Average probabilities [Batch, 19]
+            
+            preds = probs.cpu().numpy()
             
             # Apply thresholds
             if isinstance(thresholds, np.ndarray):
