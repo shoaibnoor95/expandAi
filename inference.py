@@ -27,17 +27,15 @@ class SewerTestDataset(Dataset):
             # Return a blank image if error
             image = Image.new('RGB', (224, 224))
         
-        # Test Time Augmentation (TTA): Original, HFlip, VFlip, Rot90, Rot270
+        # Test Time Augmentation (TTA): Original, HFlip, VFlip
         images = [image]
         images.append(image.transpose(Image.FLIP_LEFT_RIGHT))
         images.append(image.transpose(Image.FLIP_TOP_BOTTOM))
-        images.append(image.rotate(90, expand=True))
-        images.append(image.rotate(270, expand=True))
 
         if self.transform:
             images = [self.transform(img) for img in images]
             
-        # Stack into [5, C, H, W]
+        # Stack into [3, C, H, W]
         return torch.stack(images), self.df.iloc[idx, 0]
 
 def run_inference(model_path="sewer_model_best.pth", test_csv="test.csv", img_dir="test_images", output_csv="submission.csv", subset_size=0):
