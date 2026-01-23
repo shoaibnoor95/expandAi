@@ -154,5 +154,19 @@ def run_inference(model_path="sewer_model_best.pth", test_csv="test.csv", img_di
 
     print(f"Submission saved to {output_csv}")
 
+import argparse
+
 if __name__ == "__main__":
-    run_inference(subset_size=0) # Use 0 to process the full dataset
+    parser = argparse.ArgumentParser(description="Run Inference on Sewer-ML")
+    parser.add_argument("--output", type=str, default="submission.csv", help="Output CSV file")
+    parser.add_argument("--subset-size", type=int, default=0, help="Number of images to process (0 for all)")
+    parser.add_argument("--model", type=str, default="sewer_model_best.pth", help="Path to model file")
+    
+    args = parser.parse_args()
+    
+    run_inference(
+        model_path=args.model,
+        output_csv=args.output,
+        subset_size=args.subset_size
+    )
+
